@@ -1,0 +1,42 @@
+pipeline{
+    agent {
+        label 'jenkinsci'
+    }
+
+    stages {
+        stage("checkout from github") {
+            steps { 
+                // url use for collect code from github 
+                git url:"https://github.com/VishalKumar8/vishal-git-docker.git", branch:"main"
+            }
+        }
+        stage("create docker image") {
+            steps { 
+                // create a Docker image using Dockerfile and tag with registry name 
+                sh "docker build --no-cache -t mypy:latest ."
+                //ab registory par image push karni padti h to uska nam chnage karna pdta h
+                sh "docker tag mypy:latest vishalkumar02976/mypy:latest"
+            }
+        }
+        //ab registory pe push karna h
+        stage("push docker Image to Private Registry"){ 
+            steps {
+                // use jenkins credentials store passwords in pipeline using creds variables 
+                withCredentials([usernamePassword(credentialsId: 'dockerhubid', usernameVariable: 'docker_user', passwordVariable: 'docker_pass')]){
+
+                    // login in docker registry
+                    sh "docker login -u ${env.docker_user} -p ${env.docker_pass}"
+                }
+                   // Push image to registry
+                    sh "docker push vishalkumar02976/mypy:latest"
+                }
+            }
+            
+        stage("Execute Docker-compose "){
+            steps {
+                // run compose file from github sourcecode
+                sh "docker-compose up -d "
+                }
+            }
+    }
+}
